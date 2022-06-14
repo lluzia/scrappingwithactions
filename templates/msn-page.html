@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!--include reference to page head-->
+        {% include 'header.html' %}
+        <!-- Main Content-->
+        <div class="container px-4 px-lg-5">
+            <div class="row gx-4 gx-lg-5 justify-content-center">
+                <div class="col-md-10 col-lg-8 col-xl-7">
+                    <h5><span class="subheading-news">MSN Webpage</span></h5>
+                    <!-- Post preview-->
+                    {% for value in news_data %}
+                        <div class="post-preview">
+                            <a href="{{ value[1]}}">
+                                <h3 class="post-title">{{ value[0] }}</h3>
+                            </a>
+                        <!-- Divider-->
+                        <hr class="my-4" />
+                        <!-- Pager-->
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        <!-- Include reference to Footer-->
+        {% include "footer.html" %}
+        </div>
+    </body>
+</html>
