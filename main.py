@@ -1,27 +1,72 @@
+import smtplib
+
 from bs4 import BeautifulSoup
 from flask import Flask, render_template
 import csv
 import datetime
 import pandas
 import requests
+import config
+import constants
 
-# ----Constants----
-PREF_URL = "https://www.uberlandia.mg.gov.br/todas-as-noticias/"
-PREF_FILENAME = "prefeitura_data.csv"
-G1_MINAS_URL = "https://g1.globo.com/mg/minas-gerais/ultimas-noticias/"
-G1_MINAS_FILENAME = "g1minas_data.csv"
-TERRA_ENTRETE_URL = "https://www.terra.com.br/diversao/"
-TERRA_ENTRETE_FILENAME = "terra_entrete.csv"
-MSN_URL = "https://www.msn.com/pt-br"
-MSN_FILENAME = "msn.csv"
-GLOBOL_URL = "https://www.globo.com/"
-GLOBO_FILENAME = "g1_nacional_data.csv"
-METROPOLES_URL = "https://www.metropoles.com/"
-METROPOLES_FILENAME = "metropoles_data.csv"
 # ---App---
 app = Flask(__name__)
 
-# ---Weather ---
+
+# ---API Service ---
+response = requests.get(config.API_ENDPOINT, params=constants.weather_params)
+response.raise_for_status()
+weather_data = response.json()
+
+# ---Filtering the weather conditions
+temp_description = weather_data['hourly'][0]['temp']
+feels_like_description = weather_data['hourly'][0]['feels_like']
+clima_description = weather_data['hourly'][0]['weather'][0]['description']
+iconId = weather_data['hourly'][0]['weather'][0]['icon']
+eft = weather_data['hourly'][0]['weather'][0]['id']
+
+# ---Read the first 12h only
+weather_slice = weather_data['hourly'][:12]
+
+# ---Getting the weather icon
+IMG_CODE = iconId
+IMG_SOURCE = f'http://openweathermap.org/img/wn/{IMG_CODE}@2x.png'
+
+
+
+# ---To avoid repeated responses
+thunderstorm = False
+will_rain = False
+
+# ---Checking the weather response to send an email in case of storm or heavy rain
+for hour_data in weather_slice:
+    condition_code = hour_data['weather'][0]['id']
+    # print(condition_code)
+    if 500 <= int(condition_code) <= 531:
+        will_rain = True
+    if int(condition_code) <= 232 or int(condition_code) == 781:
+        thunderstorm = True
+
+if will_rain:
+    with smtplib.SMTP('smtp.gmail.com') as connection:
+        connection.starttls()
+        connection.login(user=config.sender_email, password=config.password)
+        connection.sendmail(
+            from_addr=config.sender_email,
+            to_addrs=config.receiver_email,
+            msg='Subject:Alerta de Tempo - Pimentinha Noticias\n\n Nu-bá, alerta de chuva forte para hoje. ⛈'.encode(
+                'utf-8')
+        )
+if thunderstorm:
+    with smtplib.SMTP('smtp.gmail.com') as connection:
+        connection.starttls()
+        connection.login(user=config.sender_email, password=config.password)
+        connection.sendmail(
+            from_addr=config.sender_email,
+            to_addrs=config.receiver_email,
+            msg='Subject:Alerta de Tempo - Pimentinha Noticias\n\n Nu-bá, alerta de tempestade para hoje. 🌪'.encode(
+                'utf-8')
+        )
 
 
 # ---Page routes---
@@ -30,8 +75,11 @@ app = Flask(__name__)
 def home():
     current_year = datetime.datetime.now().year
     currente_date = datetime.datetime.today().strftime('%d/%b/%Y')
+    icon_source = f'http://openweathermap.org/img/wn/{IMG_CODE}@2x.png'
 
-    return render_template("index.html", year=current_year, date=currente_date)
+    return render_template("index.html", year=current_year, date=currente_date,
+                           temp_description=temp_description, feels_like_description=feels_like_description,
+                           clima_description=clima_description, icon_source=icon_source)
 
 
 @app.route("/construcao")
@@ -42,11 +90,11 @@ def in_construction():
 
 @app.route("/prefeitura")
 def prefeitura():
-    response = requests.get(PREF_URL)
+    response = requests.get(constants.PREF_URL)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
-    filename = PREF_FILENAME
+    filename = constants.PREF_FILENAME
     all_news = []
 
     for a in soup.select("h3 a", href=True):
@@ -61,18 +109,18 @@ def prefeitura():
         for news_dic in all_news:
             data_news_file.writerow(news_dic)
 
-    data = pandas.read_csv(PREF_FILENAME, header=0)
+    data = pandas.read_csv(constants.PREF_FILENAME, header=0)
     news_data = data.values
     return render_template("prefeitura-page.html", news_data=news_data)
 
 
 @app.route("/g1minas")
 def g1minas():
-    response = requests.get(G1_MINAS_URL)
+    response = requests.get(constants.G1_MINAS_URL)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
-    filename = G1_MINAS_FILENAME
+    filename = constants.G1_MINAS_FILENAME
     all_news = []
 
     for a in soup.select("a", {"_class": "bastian-feed-item"}, href=True):
@@ -91,18 +139,18 @@ def g1minas():
         w.writeheader()
         for news_dic in all_news:
             w.writerow(news_dic)
-    data = pandas.read_csv(G1_MINAS_FILENAME, header=0)
+    data = pandas.read_csv(constants.G1_MINAS_FILENAME, header=0)
     news_data_gminas = data.values
     return render_template("g1minas-page.html", news_data_gminas=news_data_gminas)
 
 
 @app.route("/globo")
 def globo():
-    response = requests.get(GLOBOL_URL)
+    response = requests.get(constants.GLOBOL_URL)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
-    filename = GLOBO_FILENAME
+    filename = constants.GLOBO_FILENAME
     all_news = []
 
     for a in soup.select("a", {"_class": "post"}, href=True):
@@ -121,17 +169,17 @@ def globo():
         w.writeheader()
         for news_dic in all_news:
             w.writerow(news_dic)
-    data = pandas.read_csv(GLOBO_FILENAME, header=0)
+    data = pandas.read_csv(constants.GLOBO_FILENAME, header=0)
     news_data_globo = data.values
     return render_template("globo-page.html", news_data_globo=news_data_globo)
 
 
 @app.route('/terra')
 def terra_entrete():
-    filename = TERRA_ENTRETE_FILENAME
+    filename = constants.TERRA_ENTRETE_FILENAME
     all_news = []
 
-    response = requests.get(TERRA_ENTRETE_URL)
+    response = requests.get(constants.TERRA_ENTRETE_URL)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
@@ -149,7 +197,7 @@ def terra_entrete():
         for news_dic in all_news:
             data_news_file.writerow(news_dic)
 
-    data = pandas.read_csv(TERRA_ENTRETE_FILENAME, header=0)
+    data = pandas.read_csv(constants.TERRA_ENTRETE_FILENAME, header=0)
     news_data = data.values
 
     return render_template("terra-entrete-page.html", news_data=news_data)
@@ -157,10 +205,10 @@ def terra_entrete():
 
 @app.route('/msn')
 def msn():
-    filename = MSN_FILENAME
+    filename = constants.MSN_FILENAME
     all_news = []
 
-    response = requests.get(MSN_URL)
+    response = requests.get(constants.MSN_URL)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
@@ -181,7 +229,7 @@ def msn():
         for news_dic in all_news:
             data_news_file.writerow(news_dic)
 
-    data = pandas.read_csv(MSN_FILENAME, header=1)
+    data = pandas.read_csv(constants.MSN_FILENAME, header=1)
     news_data = data.values
 
     return render_template("msn-page.html", news_data=news_data)
@@ -189,11 +237,11 @@ def msn():
 
 @app.route("/metroples")
 def metropoles():
-    response = requests.get(METROPOLES_URL)
+    response = requests.get(constants.METROPOLES_URL)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
-    filename = METROPOLES_FILENAME
+    filename = constants.METROPOLES_FILENAME
     all_news = []
 
     for a in soup.select("a", {"_class": "m-title"}, href=True):
@@ -212,7 +260,7 @@ def metropoles():
         w.writeheader()
         for news_dic in all_news:
             w.writerow(news_dic)
-    data = pandas.read_csv(METROPOLES_FILENAME, header=0)
+    data = pandas.read_csv(constants.METROPOLES_FILENAME, header=0)
     news_data_metropoles = data.values
     return render_template("metropoles-page.html", news_data_metropoles=news_data_metropoles)
 
