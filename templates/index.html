@@ -10,16 +10,12 @@
                     <h5 class="text-main-page">Data : {{ date }}</h5>
                     <h6>Temperatura: {{ temp_description }} ºC</h6>
                     <h6>Clima: {{ clima_description.capitalize() }}
-                        <img src="{{icon_source}} "heigt=35 width=35 ></h6>
+                        <img src=" {{icon_source}} " height= "35" width= "35" ></h6>
                     <h6>Sensação Térmica: {{ feels_like_description }} ºC</h6>
                     <img src='/IMG_SOURCE' alt="" width="50" height="50">
-
-                        <!-- Pager-->
-                        </div>
                 </div>
             </div>
+        </div>
         <!-- Include reference to Footer-->
         {% include "footer.html" %}
-        </div>
-    </body>
 </html>

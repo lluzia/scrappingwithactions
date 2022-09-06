@@ -12,7 +12,6 @@ import constants
 # ---App---
 app = Flask(__name__)
 
-
 # ---API Service ---
 response = requests.get(config.API_ENDPOINT, params=constants.weather_params)
 response.raise_for_status()
@@ -31,8 +30,6 @@ weather_slice = weather_data['hourly'][:12]
 # ---Getting the weather icon
 IMG_CODE = iconId
 IMG_SOURCE = f'http://openweathermap.org/img/wn/{IMG_CODE}@2x.png'
-
-
 
 # ---To avoid repeated responses
 thunderstorm = False
