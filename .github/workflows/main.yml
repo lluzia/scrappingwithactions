@@ -13,9 +13,6 @@ jobs:
     - name: Install dependencies
       run: |
         make install
-    - name: Lint with Pylint
-      run: |
-        make lint
     - name: Format code with Python balck
       run: |
         make format
