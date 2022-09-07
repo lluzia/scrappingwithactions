@@ -13,9 +13,11 @@ import constants
 app = Flask(__name__)
 
 # ---API Service ---
-response = requests.get(config.API_ENDPOINT, params=constants.weather_params)
-response.raise_for_status()
-weather_data = response.json()
+# --- an exception is raised if the server has not issued a response
+# for timeout seconds
+weather_response = requests.get(config.API_ENDPOINT, params=constants.weather_params, timeout=10)
+weather_response.raise_for_status()
+weather_data = weather_response.json()
 
 # ---Filtering the weather conditions
 temp_description = weather_data['hourly'][0]['temp']
@@ -87,7 +89,7 @@ def in_construction():
 
 @app.route("/prefeitura")
 def prefeitura():
-    response = requests.get(constants.PREF_URL)
+    response = requests.get(constants.PREF_URL, timeout=10)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
@@ -100,7 +102,7 @@ def prefeitura():
         news_dic = {"title": text, "url": link}
         all_news.append(news_dic)
 
-    with open(filename, "w", newline="") as file:
+    with open(filename, "w", newline="", encoding='utf-8') as file:
         data_news_file = csv.DictWriter(file, ["title", "url"])
         data_news_file.writeheader()
         for news_dic in all_news:
@@ -113,7 +115,7 @@ def prefeitura():
 
 @app.route("/g1minas")
 def g1minas():
-    response = requests.get(constants.G1_MINAS_URL)
+    response = requests.get(constants.G1_MINAS_URL, timeout=10)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
@@ -131,7 +133,7 @@ def g1minas():
             if len(all_news) > 10:
                 break
 
-    with open(filename, "w", newline="") as f:
+    with open(filename, "w", newline="", encoding='utf-8') as f:
         w = csv.DictWriter(f, ["title", "url"])
         w.writeheader()
         for news_dic in all_news:
@@ -143,7 +145,7 @@ def g1minas():
 
 @app.route("/globo")
 def globo():
-    response = requests.get(constants.GLOBOL_URL)
+    response = requests.get(constants.GLOBOL_URL, timeout=10)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
@@ -161,7 +163,7 @@ def globo():
             if len(all_news) > 61:
                 break
 
-    with open(filename, "w", newline="") as f:
+    with open(filename, "w", newline="", encoding='utf-8') as f:
         w = csv.DictWriter(f, ["title", "url"])
         w.writeheader()
         for news_dic in all_news:
@@ -176,7 +178,7 @@ def terra_entrete():
     filename = constants.TERRA_ENTRETE_FILENAME
     all_news = []
 
-    response = requests.get(constants.TERRA_ENTRETE_URL)
+    response = requests.get(constants.TERRA_ENTRETE_URL, timeout=10)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
@@ -188,7 +190,7 @@ def terra_entrete():
         news_dic["url"] = link
         all_news.append(news_dic)
 
-    with open(filename, "w", newline="") as f:
+    with open(filename, "w", newline="", encoding='utf-8') as f:
         data_news_file = csv.DictWriter(f, ["title", "url"])
         data_news_file.writeheader()
         for news_dic in all_news:
@@ -205,7 +207,7 @@ def msn():
     filename = constants.MSN_FILENAME
     all_news = []
 
-    response = requests.get(constants.MSN_URL)
+    response = requests.get(constants.MSN_URL, timeout=10)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
@@ -220,7 +222,7 @@ def msn():
     # delete the two itens because they're links to another page, not news.
     del all_news[-2:]
 
-    with open(filename, "w", newline="") as f:
+    with open(filename, "w", newline="", encoding='utf-8') as f:
         data_news_file = csv.DictWriter(f, ["title", "url"])
         data_news_file.writeheader()
         for news_dic in all_news:
@@ -234,7 +236,7 @@ def msn():
 
 @app.route("/metroples")
 def metropoles():
-    response = requests.get(constants.METROPOLES_URL)
+    response = requests.get(constants.METROPOLES_URL, timeout=10)
     web_noticia = response.text
     soup = BeautifulSoup(web_noticia, 'html.parser')
 
@@ -252,7 +254,7 @@ def metropoles():
             if len(all_news) > 120:
                 break
 
-    with open(filename, "w", newline="") as f:
+    with open(filename, "w", newline="", encoding='utf-8') as f:
         w = csv.DictWriter(f, ["title", "url"])
         w.writeheader()
         for news_dic in all_news:
